@@ -3,6 +3,7 @@ import os
 import re
 import time
 
+import yagmail
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -22,13 +23,19 @@ class PreschoolBill():
                                        service_args=['--verbose', '--log-path=/tmp/chromedriver.log'])
         self.login = None
         self.password = None
+        self.emails = None
+        self.gmail_user = None
+        self.gmail_pass = None
 
     def parse_base_user_data(self):
         with open(LOGIN_FILE_PATH, "r") as file:
-            data = [line.replace('\n', '').split(" ")[1] for line in
+            data = [line.replace('\n', '') for line in
                     file.readlines()]
-            self.login = data[0]
-            self.password = data[1]
+            self.login = data[0].split(" ")[1]
+            self.password = data[1].split(" ")[1]
+            self.emails = data[2].split(" ")[1:]
+            self.gmail_user = data[3].split(" ")[1]
+            self.gmail_pass = data[4].split(" ")[1]
 
     def login_to_site_and_get_data(self):
         self.driver.get('https://edziecko.dipolpolska.pl/')
@@ -65,8 +72,14 @@ class PreschoolBill():
         current_month = today.strftime("%Y %B")
         if not amount in data_text and not current_month in data_text:
             data_text += current_month + ' ' + amount + '\n'
+
+            yag = yagmail.SMTP(self.gmail_user, self.gmail_pass)
+            subject = 'Pre-School Bill ' + current_month
+            text = 'There is a bill for ' + current_month + ' for amount ' + amount + ' zl'
+            for email in self.emails:
+                yag.send(to=email, subject=subject, contents=text)
+
             self._write_data(data_text)
-            # TODO sent email
 
     def _write_data(self, data_text):
         with open('data.txt', 'w') as f:
