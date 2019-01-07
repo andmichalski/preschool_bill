@@ -16,11 +16,12 @@ LOGIN_FILE_PATH = CURRENT_PATH + '/user_data.txt'
 class PreschoolBill():
     def __init__(self):
         self.chrome_options = webdriver.ChromeOptions()
-        # self.chrome_options.add_argument('--headless')
-        # self.chrome_options.add_argument(
-        #     '--no-sandbox')  # required when running as root user. otherwise you would get no sandbox errors.
-        self.driver = webdriver.Chrome(CHROMEDRIVER_PATH, chrome_options=self.chrome_options,
-                                       service_args=['--verbose', '--log-path=/tmp/chromedriver.log'])
+        self.chrome_options.add_argument('--headless')
+        self.chrome_options.add_argument('--no-sandbox')
+        self.driver = webdriver.Chrome(CHROMEDRIVER_PATH,
+                                       chrome_options=self.chrome_options,
+                                       service_args=['--verbose',
+                                                     '--log-path=/tmp/chromedriver.log'])
         self.login = None
         self.password = None
         self.emails = None
@@ -58,7 +59,8 @@ class PreschoolBill():
         pass_element.send_keys(Keys.RETURN)
 
         time.sleep(2)
-        bill_element = self.driver.find_element_by_css_selector(("a[href*='accountancy/rozliczenie_dla_rodzicow']"))
+        bill_element = self.driver.find_element_by_css_selector(
+            ("a[href*='accountancy/rozliczenie_dla_rodzicow']"))
         bill_element.click()
 
         main_html = self.driver.find_element_by_class_name('panel-body')
@@ -86,6 +88,7 @@ class PreschoolBill():
             subject = 'Pre-School Bill ' + current_month
             text = 'There is a bill for ' + current_month + ' for amount ' + amount + ' zl'
             for email in self.emails:
+                pass
                 yag.send(to=email, subject=subject, contents=text)
             self._write_data(data_text)
 
