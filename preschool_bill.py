@@ -1,13 +1,16 @@
+#!/home/pi/preschool_bill/.venv/bin/python
+
 import datetime
-import os
 import re
 
 import requests
 import yagmail
 from bs4 import BeautifulSoup
 
-CURRENT_PATH = os.getcwd()
-LOGIN_FILE_PATH = CURRENT_PATH + '/user_data.txt'
+file_path = __file__
+dir_list = file_path.split('/')[:-1]
+FOLDER_PATH = ('/').join(dir_list)
+LOGIN_FILE_PATH = FOLDER_PATH + '/user_data.txt'
 
 
 class PreschoolBill():
@@ -59,7 +62,8 @@ class PreschoolBill():
         return amount
 
     def open_data(self):
-        with open('data.txt', 'r+') as f:
+        file_path = FOLDER_PATH + '/data.txt'
+        with open(file_path, 'r+') as f:
             data_text = f.read()
             return data_text
 
