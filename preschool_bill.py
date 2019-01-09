@@ -1,27 +1,17 @@
 import datetime
 import os
 import re
-import time
 
+import requests
 import yagmail
 from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
 
 CURRENT_PATH = os.getcwd()
-CHROMEDRIVER_PATH = CURRENT_PATH + '/chromedriver'
 LOGIN_FILE_PATH = CURRENT_PATH + '/user_data.txt'
 
 
 class PreschoolBill():
     def __init__(self):
-        self.chrome_options = webdriver.ChromeOptions()
-        self.chrome_options.add_argument('--headless')
-        self.chrome_options.add_argument('--no-sandbox')
-        self.driver = webdriver.Chrome(CHROMEDRIVER_PATH,
-                                       chrome_options=self.chrome_options,
-                                       service_args=['--verbose',
-                                                     '--log-path=/tmp/chromedriver.log'])
         self.login = None
         self.password = None
         self.emails = None
@@ -47,25 +37,20 @@ class PreschoolBill():
                 else:
                     raise ValueError
 
-    def login_to_site_and_get_data(self):
-        self.driver.get('https://edziecko.dipolpolska.pl/')
-        time.sleep(1)
+    def get_data(self):
+        s = requests.session()
+        s.get('https://edziecko.dipolpolska.pl/')
+        login_data = dict(user=self.login, pwd=self.password)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36',
+            'X-Requested-With': 'XMLHttpRequest'}
+        r = s.post('https://edziecko.dipolpolska.pl/login/login',
+                   data=login_data, headers=headers)
 
-        login_element = self.driver.find_element_by_name('user')
-        login_element.send_keys(self.login)
-
-        pass_element = self.driver.find_element_by_name('pwd')
-        pass_element.send_keys(self.password)
-        pass_element.send_keys(Keys.RETURN)
-
-        time.sleep(2)
-        bill_element = self.driver.find_element_by_css_selector(
-            ("a[href*='accountancy/rozliczenie_dla_rodzicow']"))
-        bill_element.click()
-
-        main_html = self.driver.find_element_by_class_name('panel-body')
-        source_html = main_html.get_attribute('innerHTML')
-        return source_html
+        r = s.get(
+            'https://edziecko.dipolpolska.pl/accountancy/rozliczenie_dla_rodzicow')
+        source = r.content
+        return source
 
     def parse_data(self, source):
         data = BeautifulSoup(source, 'html.parser')
@@ -88,7 +73,6 @@ class PreschoolBill():
             subject = 'Pre-School Bill ' + current_month
             text = 'There is a bill for ' + current_month + ' for amount ' + amount + ' zl'
             for email in self.emails:
-                pass
                 yag.send(to=email, subject=subject, contents=text)
             self._write_data(data_text)
 
@@ -100,7 +84,7 @@ class PreschoolBill():
 if __name__ == '__main__':
     pb = PreschoolBill()
     pb.parse_base_user_data()
+    source = pb.get_data()
     data_text = pb.open_data()
-    source = pb.login_to_site_and_get_data()
     amount = pb.parse_data(source)
     pb.check_mail_and_send(data_text, amount)
